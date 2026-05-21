@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Museo VR — La Reforma e Intervención</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#050005; font-family:'Georgia',serif; overflow:hidden; }
+
+    /* ═══ SPLASH ═══ */
+    #splash {
+      position:fixed; inset:0; z-index:9999;
+      background: radial-gradient(ellipse at 50% 60%, #1a0030 0%, #050005 70%);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      color:#f5d98b; text-align:center; padding:2rem;
+    }
+    #splash-top {
+      display:flex; align-items:center; justify-content:center; gap:2rem;
+      margin-bottom:1.2rem;
+    }
+    .splash-column {
+      display:flex; flex-direction:column; align-items:center; gap:.5rem;
+      font-size:clamp(2.4rem,6vw,5rem);
+    }
+    .splash-divider {
+      width:3px; height:clamp(100px,16vw,180px);
+      background: linear-gradient(to bottom, transparent, #f5a623, #ce1126, #006847, #f5a623, transparent);
+      flex-shrink:0;
+    }
+    #splash h1 {
+      font-size:clamp(1.5rem,4vw,3rem);
+      text-shadow:0 0 30px #a020f0, 0 0 60px #6a0080;
+      letter-spacing:.1em; margin:.2rem 0;
+      color:#f0e0ff;
+    }
+    #splash .sub {
+      font-size:clamp(.8rem,1.8vw,1rem); color:#c8a0e8;
+      letter-spacing:.18em; margin-bottom:.4rem;
+    }
+    .splash-era {
+      font-size:clamp(.75rem,1.5vw,.9rem); color:#9a7ab8;
+      letter-spacing:.12em; margin-bottom:1.8rem;
+    }
+    /* Animated line divider below title */
+    .title-line {
+      width:clamp(200px,40vw,400px); height:2px;
+      background: linear-gradient(to right, transparent, #a020f0, #f5a623, #a020f0, transparent);
+      margin:.6rem auto 1.2rem;
+      animation: linepulse 2.5s ease-in-out infinite;
+    }
+    @keyframes linepulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+    /* Sala preview badges */
+    .sala-badges {
+      display:flex; gap:.8rem; margin-bottom:1.8rem; flex-wrap:wrap; justify-content:center;
+    }
+    .badge {
+      background:rgba(160,32,240,.15); border:1px solid rgba(160,32,240,.5);
+      color:#d4b0f0; padding:.35rem .85rem; border-radius:2px;
+      font-size:clamp(.65rem,1.2vw,.78rem); letter-spacing:.1em;
+    }
+    #btn-enter {
+      padding:1rem 3.5rem; background:transparent;
+      border:2px solid #a020f0; color:#f0e0ff;
+      font-size:clamp(.95rem,1.8vw,1.15rem); font-family:'Georgia',serif;
+      cursor:pointer; letter-spacing:.18em; text-transform:uppercase;
+      border-radius:2px; transition:all .35s; position:relative; overflow:hidden;
+    }
+    #btn-enter::before {
+      content:''; position:absolute; inset:0;
+      background: linear-gradient(135deg, #a020f020, #f5a62310);
+      opacity:0; transition:opacity .35s;
+    }
+    #btn-enter:hover { border-color:#f5a623; color:#f5d98b; box-shadow:0 0 30px rgba(245,166,35,.4); }
+    #btn-enter:hover::before { opacity:1; }
+
+    /* ═══ HUD ═══ */
+    #room-name {
+      position:fixed; top:14px; left:50%; transform:translateX(-50%);
+      background:rgba(5,0,5,.92); border:1px solid #a020f0;
+      color:#f0e0ff; padding:7px 22px; border-radius:2px;
+      font-size:.9rem; letter-spacing:.07em; z-index:100;
+      display:none; text-align:center; max-width:92vw; white-space:nowrap;
+      box-shadow:0 0 16px rgba(160,32,240,.3);
+    }
+    #controls {
+      position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
+      background:rgba(5,0,5,.88); border:1px solid #6a2080;
+      color:#b090c8; padding:7px 18px; border-radius:2px;
+      font-size:.76rem; z-index:100; display:none; text-align:center;
+    }
+    #minimap {
+      position:fixed; top:58px; right:14px;
+      background:rgba(5,0,5,.92); border:1px solid #6a2080;
+      color:#f0e0ff; padding:10px 14px; border-radius:2px;
+      font-size:.72rem; z-index:100; display:none; line-height:2;
+      max-width:220px;
+    }
+    #minimap b { color:#a020f0; display:block; margin-bottom:4px; letter-spacing:.08em; }
+    #minimap span.active { color:#f5a623; font-weight:bold; }
+
+    /* ═══ NAV PANEL ═══ */
+    #nav-panel {
+      position:fixed; bottom:74px; left:18px; z-index:200;
+      background:rgba(5,0,5,.95); border:2px solid #a020f0;
+      color:#f0e0ff; padding:14px; border-radius:4px;
+      display:none; flex-direction:column; gap:7px; max-width:230px;
+      font-family:'Georgia',serif; box-shadow:0 0 24px rgba(160,32,240,.35);
+    }
+    #nav-panel h3 { margin:0 0 7px; text-align:center; color:#a020f0; border-bottom:1px solid #6a2080; padding-bottom:4px; font-size:.9rem; letter-spacing:.1em; }
+    .nav-btn {
+      background:#100015; border:1px solid #6a2080; color:#f0e0ff;
+      padding:9px 12px; text-align:left; cursor:pointer; border-radius:3px;
+      font-size:.87rem; transition:all .2s; width:100%; letter-spacing:.04em;
+    }
+    .nav-btn:hover { background:#a020f0; color:#fff; border-color:#f5a623; transform:scale(1.02); }
+    #nav-toggle {
+      position:fixed; bottom:20px; left:18px; z-index:300;
+      background:#100015; border:2px solid #a020f0; color:#f0e0ff;
+      padding:10px 16px; cursor:pointer; border-radius:3px; display:none;
+      font-family:'Georgia',serif; font-size:.88rem; letter-spacing:.1em;
+      box-shadow:0 0 16px rgba(160,32,240,.4);
+    }
+    #nav-toggle:hover { background:#a020f0; }
+
+    /* ═══ VITRINA MODAL ═══ */
+    #vitrina-modal {
+      display:none; position:fixed; inset:0; z-index:9000;
+      background:rgba(0,0,0,.85); align-items:center; justify-content:center;
+    }
+    #vitrina-modal.active { display:flex; }
+    #vitrina-card {
+      background: linear-gradient(145deg, #0a0015, #150025);
+      border:2px solid #a020f0; border-radius:8px;
+      padding:28px 32px; max-width:500px; width:92%;
+      color:#f0e0ff; font-family:'Georgia',serif; position:relative;
+      box-shadow:0 0 50px rgba(160,32,240,.5);
+      animation: fadeIn .25s ease;
+    }
+    @keyframes fadeIn { from{opacity:0;transform:scale(0.93)} to{opacity:1;transform:scale(1)} }
+    #vitrina-card h2 { font-size:1.25rem; color:#c880ff; margin:0 0 5px; letter-spacing:.06em; }
+    #vitrina-card .fecha { font-size:.82rem; color:#9060b8; margin-bottom:14px; letter-spacing:.12em; text-transform:uppercase; }
+    .obj-display {
+      width:100%; height:130px; background:#070012; border:1px solid #6a2080;
+      border-radius:5px; margin-bottom:14px; display:flex; align-items:center;
+      justify-content:center; font-size:3.5rem;
+    }
+    #vitrina-card p { font-size:.92rem; line-height:1.68; color:#d4c0e8; margin:0; }
+    #vitrina-close {
+      position:absolute; top:10px; right:14px;
+      background:none; border:none; color:#a020f0;
+      font-size:1.5rem; cursor:pointer; line-height:1; transition:color .2s;
+    }
+    #vitrina-close:hover { color:#fff; }
+    #v-biblio { font-size:.76rem; color:#7a5098; margin-top:12px; border-top:1px solid #2a1040; padding-top:10px; display:none; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════ SPLASH ════════════ -->
+<div id="splash">
+  <div id="splash-top">
+    <div class="splash-column">⚔️<br>🦅<br>📜</div>
+    <div class="splash-divider"></div>
+    <div>
+      <h1>MUSEO VIRTUAL<br>LA REFORMA MEXICANA</h1>
+      <p class="sub">HISTORIA · ÉPOCA · PORFIRIATO</p>
+      <div class="title-line"></div>
+      <p class="splash-era">1857 — 1911 · Experiencia VR Inmersiva</p>
+    </div>
+    <div class="splash-divider"></div>
+    <div class="splash-column">🏛️<br>⚔️<br>🚂</div>
+  </div>
+  <div class="sala-badges">
+    <span class="badge">SALA I · Juárez y la Constitución del 57</span>
+    <span class="badge">SALA II · La Intervención Francesa</span>
+    <span class="badge">SALA III · La República Restaurada</span>
+    <span class="badge">SALA IV · El Porfiriato</span>
+  </div>
+  <button id="btn-enter" onclick="entrar()">✦ ENTRAR AL MUSEO ✦</button>
+</div>
+
+<!-- HUD -->
+<div id="room-name">Sala I — Juárez y la Constitución del 57</div>
+<div id="controls">🖱 Mira alrededor · WASD / Flechas para moverte · Botón izquierdo para navegar · Clic en vitrinas para explorar</div>
+<div id="minimap">
+  <b>📍 SALAS DEL MUSEO</b>
+  <span id="m1">I. Juárez y la Constitución del 57</span><br>
+  <span id="m2">II. La Intervención Francesa</span><br>
+  <span id="m3">III. La República Restaurada</span><br>
+  <span id="m4">IV. El Porfiriato</span>
+</div>
+
+<button id="nav-toggle" onclick="toggleNav()">🗂 SALAS</button>
+<div id="nav-panel">
+  <h3>🗂 NAVEGAR</h3>
+  <button class="nav-btn" onclick="irASala('sala1','Sala I — Juárez y la Constitución del 57','m1')">I · Juárez y la Constitución</button>
+  <button class="nav-btn" onclick="irASala('sala2','Sala II — La Intervención Francesa','m2')">II · Intervención Francesa</button>
+  <button class="nav-btn" onclick="irASala('sala3','Sala III — La República Restaurada','m3')">III · República Restaurada</button>
+  <button class="nav-btn" onclick="irASala('sala4','Sala IV — El Porfiriato','m4')">IV · El Porfiriato</button>
+</div>
+
+<!-- VITRINA MODAL -->
+<div id="vitrina-modal" onclick="cerrarVitrina(event)">
+  <div id="vitrina-card">
+    <button id="vitrina-close" onclick="cerrarVitrina()">&#x2715;</button>
+    <h2 id="v-titulo"></h2>
+    <div class="fecha" id="v-fecha"></div>
+    <div class="obj-display" id="v-emoji">🏛</div>
+    <p id="v-desc"></p>
+    <p id="v-biblio"></p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ A-FRAME SCENE ════════════════════════════════ -->
+<script>
+  AFRAME.registerComponent('vitrina', {
+    schema: { id: {type:'string'} },
+    init: function () {
+      var id = this.data.id, el = this.el;
+      el.addEventListener('click', function() { abrirVitrina(id); });
+      el.addEventListener('mouseenter', function() {
+        el.querySelectorAll('[data-glow]').forEach(function(b){ b.setAttribute('opacity','0.15'); });
+      });
+      el.addEventListener('mouseleave', function() {
+        el.querySelectorAll('[data-glow]').forEach(function(b){ b.setAttribute('opacity','0'); });
+      });
+    }
+  });
+</script>
+
+<a-scene id="scene" style="display:none" vr-mode-ui="enabled:true" loading-screen="enabled:false" background="color:#020005">
+
+  <a-entity id="camara-global" position="0 1.6 8">
+    <a-camera id="camara-principal" look-controls="pointerLockEnabled:true" wasd-controls="acceleration:25">
+      <a-cursor color="#c880ff" opacity="0.9" fuse="false" raycaster="objects:.clickable"></a-cursor>
+    </a-camera>
+  </a-entity>
+
+  <!-- ═══════════════════════════════════════════════════
+       SALA 1 — JUÁREZ Y LA CONSTITUCIÓN DEL 57
+       Paleta: dorado / verde oscuro / negro
+  ═══════════════════════════════════════════════════ -->
+  <a-entity id="sala1" position="0 0 0">
+
+    <!-- SUELO Y TECHO -->
+    <a-box color="#0a0800" width="36" height="0.25" depth="36" position="0 -0.12 0"></a-box>
+    <a-box color="#060600" width="36" height="0.25" depth="36" position="0 10.1 0"></a-box>
+    <!-- Mosaico de suelo -->
+    <a-box color="#1a1400" width="35.5" height="0.08" depth="35.5" position="0 0.04 0"></a-box>
+    <a-box color="#c8860a" width="35.5" height="0.02" depth="0.12" position="0 0.13 0"></a-box>
+    <a-box color="#c8860a" width="0.12" height="0.02" depth="35.5" position="0 0.13 0"></a-box>
+
+    <!-- MUROS -->
+    <a-box color="#0d0c00" width="36" height="10" depth="0.3" position="0 5 -18"></a-box>
+    <a-box color="#0d0c00" width="36" height="10" depth="0.3" position="0 5 18" rotation="0 180 0"></a-box>
+    <a-box color="#0d0c00" width="0.3" height="10" depth="36" position="-18 5 0"></a-box>
+    <a-box color="#0d0c00" width="0.3" height="10" depth="36" position="18 5 0"></a-box>
+    <!-- Zócalo dorado -->
+    <a-box color="#c8860a" width="36" height="0.18" depth="0.35" position="0 0.75 -18"></a-box>
+    <a-box color="#c8860a" width="36" height="0.18" depth="0.35" position="0 0.75 18"></a-box>
+    <a-box color="#c8860a" width="0.35" height="0.18" depth="36" position="-18 0.75 0"></a-box>
+    <a-box color="#c8860a" width="0.35" height="0.18" depth="36" position="18 0.75 0"></a-box>
+    <!-- Cornisa dorada arriba -->
+    <a-box color="#8b5a00" width="36.3" height="0.25" depth="0.4" position="0 9.8 -18"></a-box>
+    <a-box color="#8b5a00" width="36.3" height="0.25" depth="0.4" position="0 9.8 18"></a-box>
+    <a-box color="#8b5a00" width="0.4" height="0.25" depth="36.3" position="-18 9.8 0"></a-box>
+    <a-box color="#8b5a00" width="0.4" height="0.25" depth="36.3" position="18 9.8 0"></a-box>
+
+    <!-- ILUMINACIÓN -->
+    <a-light type="ambient" color="#2a1800" intensity="1.2"></a-light>
+    <a-light type="point" color="#f5d060" intensity="2.5" position="0 8.5 0" distance="40" decay="1"></a-light>
+    <a-light type="point" color="#ffe090" intensity="1.4" position="-8 6 -8" distance="20"></a-light>
+    <a-light type="point" color="#ffe090" intensity="1.4" position="8 6 8" distance="20"></a-light>
+
+    <!-- TÍTULO -->
+    <a-entity position="0 8.5 -17.5">
+      <a-box color="#1a1200" width="22" height="1.6" depth="0.18" position="0 0 -0.1"></a-box>
+      <a-box color="#c8860a" width="22.3" height="1.9" depth="0.12" position="0 0 -0.18"></a-box>
+      <a-text value="SALA I — JUÁREZ Y LA CONSTITUCIÓN DE 1857" align="center" color="#f5d98b" width="20" position="0 0 0.1"></a-text>
+    </a-entity>
+
+    <!-- ══ MONUMENTO CENTRAL: BENITO JUÁREZ ══ -->
+    <a-entity position="0 0 0">
+      <!-- Pedestal escalonado -->
+      <a-box color="#2a1800" width="5" height="0.18" depth="5" position="0 0.09 0"></a-box>
+      <a-box color="#c8860a" width="5.1" height="0.06" depth="5.1" position="0 0.18 0"></a-box>
+      <a-box color="#3a2000" width="3.8" height="0.3" depth="3.8" position="0 0.4 0"></a-box>
+      <a-box color="#c8860a" width="3.85" height="0.06" depth="3.85" position="0 0.72 0"></a-box>
+      <a-box color="#2a1a08" width="2.8" height="2.0" depth="2.8" position="0 1.86 0"></a-box>
+      <a-box color="#c8860a" width="2.85" height="0.06" depth="2.85" position="0 2.94 0"></a-box>
+      <!-- Texto pedestal -->
+      <a-text value="BENITO JUÁREZ&#10;Presidente Constitucional&#10;1858 — 1872" align="center" color="#f5d98b" width="6.5" position="0 1.8 1.43"></a-text>
+      <a-text value="'El respeto al derecho ajeno&#10;es la paz.'" align="center" color="#c8860a" width="5.5" position="0 1.2 1.43"></a-text>
+      <!-- Figura Juárez -->
+      <!-- piernas / traje -->
+      <a-box color="#151515" width="0.54" height="1.5" depth="0.38" position="-0.14 3.7 0"></a-box>
+      <a-box color="#151515" width="0.54" height="1.5" depth="0.38" position="0.14 3.7 0"></a-box>
+      <!-- cuerpo/levita negra -->
+      <a-box color="#0a0a0a" width="0.9" height="1.4" depth="0.5" position="0 5.1 0"></a-box>
+      <!-- cuello blanco -->
+      <a-box color="#f0f0e8" width="0.18" height="0.2" depth="0.5" position="0 5.86 0.04"></a-box>
+      <!-- cabeza -->
+      <a-sphere color="#b07840" radius="0.34" position="0 6.38 0"></a-sphere>
+      <!-- cabello oscuro -->
+      <a-sphere color="#0a0800" radius="0.35" position="0 6.5 -0.06" scale="1 0.62 1"></a-sphere>
+      <!-- ojos -->
+      <a-sphere color="#0a0a0a" radius="0.055" position="-0.12 6.42 0.3"></a-sphere>
+      <a-sphere color="#0a0a0a" radius="0.055" position="0.12 6.42 0.3"></a-sphere>
+      <!-- brazos -->
+      <a-box color="#0a0a0a" width="0.22" height="1.0" depth="0.26" position="-0.58 4.9 0" rotation="0 0 8"></a-box>
+      <a-box color="#0a0a0a" width="0.22" height="1.0" depth="0.26" position="0.58 4.9 0" rotation="0 0 -8"></a-box>
+      <!-- mano con documento -->
+      <a-box color="#c8a860" width="0.18" height="0.22" depth="0.18" position="0.62 4.36 0"></a-box>
+      <a-box color="#f0e8c0" width="0.26" height="0.38" depth="0.04" position="0.64 4.1 0.1"></a-box>
+      <!-- halo/corona de luz -->
+      <a-torus color="#c8860a" radius="0.9" radius-tubular="0.025" rotation="90 0 0" position="0 6.85 0"
+        animation="property:rotation; to:90 360 0; loop:true; dur:9000; easing:linear"></a-torus>
+      <!-- luz del monumento -->
+      <a-light type="point" color="#ffe090" intensity="1.5" position="0 7 0" distance="10"></a-light>
+    </a-entity>
+
+    <!-- ══ PANEL NORTE: LA CONSTITUCIÓN DE 1857 ══ -->
+    <a-entity position="0 3.5 -16.5">
+      <a-box color="#c8860a" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#1a1200" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#120e00" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="LA CONSTITUCIÓN DE 1857" align="center" color="#c8860a" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;Promulgada el 5 de febrero de 1857, fue&#10;la carta magna del liberalismo mexicano.&#10;&#10;· Garantías individuales y derechos del hombre&#10;· Libertad de expresión y de cultos&#10;· Separación Iglesia–Estado&#10;· Eliminación de fueros eclesiásticos y militares&#10;· Instituyó el juicio de amparo&#10;&#10;Los conservadores la rechazaron y la&#10;Guerra de Reforma (1858-1861) estalló."
+        align="center" color="#f5d98b" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <!-- ══ PANEL ESTE: LEYES DE REFORMA ══ -->
+    <a-entity position="17 3.5 0" rotation="0 -90 0">
+      <a-box color="#c8860a" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#1a1200" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#120e00" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="LAS LEYES DE REFORMA" align="center" color="#c8860a" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;Juárez promulgó desde Veracruz (1859-1860):&#10;&#10;· Ley de Nacionalización de Bienes Eclesiásticos&#10;· Ley del Matrimonio Civil&#10;· Ley del Registro Civil&#10;· Ley de Cementerios Laicos&#10;· Libertad de cultos religiosos&#10;&#10;La Iglesia perdió el 40% de las propiedades&#10;del país. El Estado laico quedó fundado."
+        align="center" color="#f5d98b" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <!-- ══ PANEL SUR: GUERRA DE REFORMA ══ -->
+    <a-entity position="0 3.5 16.5" rotation="0 180 0">
+      <a-box color="#c8860a" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#1a1200" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#120e00" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="LA GUERRA DE REFORMA" align="center" color="#c8860a" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;1858-1861: Primera guerra civil ideológica.&#10;&#10;· Liberales de Juárez — capital: Veracruz&#10;· Conservadores de Zuloaga — capital: D.F.&#10;&#10;Enero 1861: Juárez entra triunfante&#10;a la Ciudad de México.&#10;&#10;El erario exhausto obligó a suspender&#10;el pago de la deuda externa (julio 1861),&#10;desencadenando la Intervención Francesa."
+        align="center" color="#f5d98b" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <!-- ══ PANEL OESTE: BENITO JUÁREZ ══ -->
+    <a-entity position="-17 3.5 0" rotation="0 90 0">
+      <a-box color="#c8860a" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#1a1200" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#120e00" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="BENITO PABLO JUÁREZ" align="center" color="#c8860a" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;21 Mar 1806 — 18 Jul 1872&#10;Zapoteca de Oaxaca · Abogado · Presidente&#10;&#10;· Ministro de Justicia (Ley Juárez, 1855)&#10;· Presidente durante la Guerra de Reforma&#10;· Resistió la Intervención Francesa&#10;· Restauró la República (1867)&#10;· Murió en cargo, de angina de pecho&#10;&#10;Primer presidente indígena de México&#10;y de toda América Latina."
+        align="center" color="#f5d98b" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <!-- ══ VITRINAS SALA 1 ══ -->
+    <!-- Vitrina: La Constitución -->
+    <a-entity position="-8 0 -8" class="clickable" vitrina="id:const57_juarez">
+      <a-box color="#1a1200" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#c8860a" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#f5a623" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <!-- Constitución enrollada -->
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:8000; easing:linear">
+        <a-box color="#f0e0b0" width="0.4" height="0.6" depth="0.04" position="0 0 0"></a-box>
+        <a-cylinder color="#8b6a00" radius="0.045" height="0.46" rotation="0 0 90" position="0 0.32 0"></a-cylinder>
+        <a-cylinder color="#8b6a00" radius="0.045" height="0.46" rotation="0 0 90" position="0 -0.22 0"></a-cylinder>
+        <a-sphere color="#c8860a" radius="0.07" position="0 0 0.05"></a-sphere>
+        <a-torus color="#c8860a" radius="0.07" radius-tubular="0.012" rotation="90 0 0" position="0 0.04 0.05"></a-torus>
+      </a-entity>
+      <a-text value="Constitución&#10;de 1857" align="center" color="#c8860a" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+    <!-- Vitrina: Silla Presidencial -->
+    <a-entity position="8 0 -8" class="clickable" vitrina="id:silla_presidencial">
+      <a-box color="#1a1200" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#c8860a" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#f5a623" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <!-- Silla presidencial en geometría -->
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:9000; easing:linear">
+        <!-- asiento -->
+        <a-box color="#6b1a00" width="0.5" height="0.07" depth="0.46" position="0 -0.04 0"></a-box>
+        <!-- respaldo -->
+        <a-box color="#6b1a00" width="0.5" height="0.6" depth="0.06" position="0 0.3 -0.22"></a-box>
+        <!-- patas -->
+        <a-cylinder color="#c8860a" radius="0.03" height="0.4" position="-0.2 -0.26 -0.18"></a-cylinder>
+        <a-cylinder color="#c8860a" radius="0.03" height="0.4" position="0.2 -0.26 -0.18"></a-cylinder>
+        <a-cylinder color="#c8860a" radius="0.03" height="0.4" position="-0.2 -0.26 0.18"></a-cylinder>
+        <a-cylinder color="#c8860a" radius="0.03" height="0.4" position="0.2 -0.26 0.18"></a-cylinder>
+        <!-- remates del respaldo -->
+        <a-sphere color="#f5a623" radius="0.06" position="-0.24 0.63 -0.22"></a-sphere>
+        <a-sphere color="#f5a623" radius="0.06" position="0.24 0.63 -0.22"></a-sphere>
+      </a-entity>
+      <a-text value="Silla Presidencial&#10;de Juárez" align="center" color="#c8860a" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+    <!-- Vitrina: Bandera 1857 -->
+    <a-entity position="-8 0 8" class="clickable" vitrina="id:bandera57">
+      <a-box color="#1a1200" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#c8860a" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#f5a623" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <!-- Bandera tricolor en geometría -->
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:7000; easing:linear">
+        <a-cylinder color="#8b5a20" radius="0.04" height="0.9" position="-0.22 0 0"></a-cylinder>
+        <a-box color="#006847" width="0.32" height="0.48" depth="0.03" position="-0.05 0.18 0"></a-box>
+        <a-box color="#f0f0e0" width="0.32" height="0.48" depth="0.03" position="0.27 0.18 0"></a-box>
+        <a-box color="#ce1126" width="0.32" height="0.48" depth="0.03" position="0.59 0.18 0"></a-box>
+        <a-sphere color="#c8860a" radius="0.07" position="-0.22 0.48 0"></a-sphere>
+      </a-entity>
+      <a-text value="Bandera Nacional&#10;1857" align="center" color="#c8860a" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+    <!-- Vitrina: Espada de la Reforma -->
+    <a-entity position="8 0 8" class="clickable" vitrina="id:espada_reforma">
+      <a-box color="#1a1200" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#c8860a" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#f5a623" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <!-- Espada -->
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:6000; easing:linear">
+        <a-box color="#d4d4d4" width="0.07" height="1.3" depth="0.045" position="0 0.1 0"></a-box>
+        <a-box color="#c8860a" width="0.46" height="0.07" depth="0.045" position="0 -0.5 0"></a-box>
+        <a-cylinder color="#8b4500" radius="0.055" height="0.38" position="0 -0.76 0"></a-cylinder>
+        <a-sphere color="#8b0000" radius="0.1" position="0 -0.98 0"></a-sphere>
+      </a-entity>
+      <a-text value="Espada&#10;Guerra de Reforma" align="center" color="#c8860a" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+  </a-entity><!-- /sala1 -->
+
+
+  <!-- ═══════════════════════════════════════════════════
+       SALA 2 — LA INTERVENCIÓN FRANCESA
+       Paleta: azul francés / rojo / gris acero
+  ═══════════════════════════════════════════════════ -->
+  <a-entity id="sala2" visible="false" position="0 0 -120">
+
+    <!-- SUELO Y TECHO -->
+    <a-box color="#020510" width="36" height="0.25" depth="36" position="0 -0.12 0"></a-box>
+    <a-box color="#010308" width="36" height="0.25" depth="36" position="0 10.1 0"></a-box>
+    <a-box color="#050a20" width="35.5" height="0.08" depth="35.5" position="0 0.04 0"></a-box>
+
+    <!-- MUROS azul oscuro -->
+    <a-box color="#030820" width="36" height="10" depth="0.3" position="0 5 -18"></a-box>
+    <a-box color="#030820" width="36" height="10" depth="0.3" position="0 5 18" rotation="0 180 0"></a-box>
+    <a-box color="#030820" width="0.3" height="10" depth="36" position="-18 5 0"></a-box>
+    <a-box color="#030820" width="0.3" height="10" depth="36" position="18 5 0"></a-box>
+    <!-- Zócalo azul -->
+    <a-box color="#1a3a7a" width="36" height="0.18" depth="0.35" position="0 0.75 -18"></a-box>
+    <a-box color="#1a3a7a" width="36" height="0.18" depth="0.35" position="0 0.75 18"></a-box>
+    <a-box color="#1a3a7a" width="0.35" height="0.18" depth="36" position="-18 0.75 0"></a-box>
+    <a-box color="#1a3a7a" width="0.35" height="0.18" depth="36" position="18 0.75 0"></a-box>
+    <!-- Cornisa -->
+    <a-box color="#0a1a50" width="36.3" height="0.25" depth="0.4" position="0 9.8 -18"></a-box>
+    <a-box color="#0a1a50" width="36.3" height="0.25" depth="0.4" position="0 9.8 18"></a-box>
+    <a-box color="#0a1a50" width="0.4" height="0.25" depth="36.3" position="-18 9.8 0"></a-box>
+    <a-box color="#0a1a50" width="0.4" height="0.25" depth="36.3" position="18 9.8 0"></a-box>
+
+    <!-- ILUMINACIÓN -->
+    <a-light type="ambient" color="#060d2a" intensity="1.3"></a-light>
+    <a-light type="point" color="#4488ff" intensity="2.0" position="-6 8 0" distance="35" decay="1"></a-light>
+    <a-light type="point" color="#ff4444" intensity="2.0" position="6 8 0" distance="35" decay="1"></a-light>
+    <a-light type="point" color="#ffffcc" intensity="0.9" position="0 5 0" distance="20"></a-light>
+
+    <!-- TÍTULO -->
+    <a-entity position="0 8.5 -17.5">
+      <a-box color="#030d30" width="22" height="1.6" depth="0.18" position="0 0 -0.1"></a-box>
+      <a-box color="#1a3a7a" width="22.3" height="1.9" depth="0.12" position="0 0 -0.18"></a-box>
+      <a-text value="SALA II — LA INTERVENCIÓN FRANCESA 1862–1867" align="center" color="#88ccff" width="20" position="0 0 0.1"></a-text>
+    </a-entity>
+
+    <!-- ══ MONUMENTO CENTRAL: BATALLA DE PUEBLA ══ -->
+    <a-entity position="0 0 0">
+      <!-- Base / plaza de batalla -->
+      <a-box color="#1a1a2a" width="6" height="0.15" depth="6" position="0 0.07 0"></a-box>
+      <a-box color="#1a3a7a" width="6.1" height="0.05" depth="6.1" position="0 0.15 0"></a-box>
+      <a-box color="#0a0a1a" width="4.5" height="0.3" depth="4.5" position="0 0.36 0"></a-box>
+      <a-box color="#c8860a" width="4.55" height="0.05" depth="4.55" position="0 0.52 0"></a-box>
+      <a-box color="#050510" width="3.0" height="2.0" depth="3.0" position="0 1.6 0"></a-box>
+      <a-box color="#1a3a7a" width="3.05" height="0.05" depth="3.05" position="0 2.66 0"></a-box>
+      <!-- Texto pedestal -->
+      <a-text value="BATALLA DE PUEBLA&#10;5 DE MAYO DE 1862&#10;Gen. Ignacio Zaragoza" align="center" color="#88ccff" width="7" position="0 1.55 1.56"></a-text>
+      <!-- Figura Zaragoza -->
+      <a-box color="#2a3a00" width="0.5" height="1.5" depth="0.35" position="0 3.4 0"></a-box><!-- cuerpo uniforme -->
+      <a-cone color="#1a2800" radius-bottom="0.38" radius-top="0.22" height="0.55" position="0 4.2 0"></a-cone>
+      <a-box color="#c8860a" width="0.22" height="0.12" depth="0.5" position="-0.38 4.42 0"></a-box>
+      <a-box color="#c8860a" width="0.22" height="0.12" depth="0.5" position="0.38 4.42 0"></a-box>
+      <a-cylinder color="#b07840" radius="0.13" height="0.17" position="0 4.62 0"></a-cylinder>
+      <a-sphere color="#b07840" radius="0.27" position="0 4.98 0"></a-sphere>
+      <a-sphere color="#0a0800" radius="0.28" position="0 5.1 -0.05" scale="1 0.55 1"></a-sphere>
+      <a-sphere color="#0a0a0a" radius="0.05" position="-0.1 5.01 0.24"></a-sphere>
+      <a-sphere color="#0a0a0a" radius="0.05" position="0.1 5.01 0.24"></a-sphere>
+      <!-- espada levantada -->
+      <a-box color="#c0c0c0" width="0.06" height="0.9" depth="0.04" position="0.56 3.9 0" rotation="0 0 -30"></a-box>
+      <a-box color="#c8860a" width="0.38" height="0.06" depth="0.04" position="0.7 3.52 0"></a-box>
+      <!-- anillo luz -->
+      <a-torus color="#4488ff" radius="0.8" radius-tubular="0.022" rotation="90 0 0" position="0 5.5 0"
+        animation="property:rotation; to:90 360 0; loop:true; dur:7000; easing:linear"></a-torus>
+      <a-light type="point" color="#4488ff" intensity="1.2" position="0 5.5 0" distance="8"></a-light>
+    </a-entity>
+
+    <!-- ══ PANEL NORTE: LA INTERVENCIÓN ══ -->
+    <a-entity position="0 3.5 -16.5">
+      <a-box color="#1a3a7a" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#030d30" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#020820" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="LA INTERVENCIÓN FRANCESA" align="center" color="#88ccff" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;1861: Juárez suspende el pago de la deuda&#10;externa. Francia, España e Inglaterra&#10;acuerdan una intervención armada.&#10;&#10;España e Inglaterra se retiran pronto.&#10;Francia continúa: Napoleón III quiere&#10;instalar una monarquía en México.&#10;&#10;Apoya a Maximiliano de Habsburgo&#10;como Emperador de México."
+        align="center" color="#88ccff" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <!-- ══ PANEL ESTE: 5 DE MAYO ══ -->
+    <a-entity position="17 3.5 0" rotation="0 -90 0">
+      <a-box color="#c8860a" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#1a0e00" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#100800" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="5 DE MAYO DE 1862" align="center" color="#ffe888" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;El general Ignacio Zaragoza con 4,000&#10;soldados mexicanos derrota al ejército&#10;francés —considerado el mejor del mundo—&#10;en los fuertes de Loreto y Guadalupe.&#10;&#10;Victoria inesperada. México gana&#10;la batalla, pero no la guerra.&#10;Francia envía 30,000 soldados más&#10;y toma la Ciudad de México."
+        align="center" color="#ffe888" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <!-- ══ PANEL OESTE: SEGUNDO IMPERIO ══ -->
+    <a-entity position="-17 3.5 0" rotation="0 90 0">
+      <a-box color="#5a0a5a" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#150015" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#0d000d" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="EL SEGUNDO IMPERIO 1864-1867" align="center" color="#dd99ff" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;Maximiliano de Habsburgo acepta&#10;la corona de México en 1864.&#10;&#10;Su gobierno fue moderado pero ilegítimo.&#10;Juárez nunca reconoció el Imperio.&#10;Siguió luchando desde el norte del país.&#10;&#10;1867: EE.UU. presiona a Francia.&#10;Maximiliano es capturado y fusilado&#10;en el Cerro de las Campanas, Querétaro."
+        align="center" color="#dd99ff" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <!-- ══ PANEL SUR: PORFIRIO DÍAZ EN LA GUERRA ══ -->
+    <a-entity position="0 3.5 16.5" rotation="0 180 0">
+      <a-box color="#1a5a1a" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#001500" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#000d00" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="PORFIRIO DÍAZ EN LA GUERRA" align="center" color="#aaffaa" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;El joven general Porfirio Díaz se&#10;convierte en héroe de la guerra contra&#10;la Intervención Francesa.&#10;&#10;2 de abril de 1867:&#10;Porfirio Díaz captura Puebla y expulsa&#10;a las últimas tropas francesas del país.&#10;&#10;Inicio de su fama nacional.&#10;Esta victoria lo catapulta al poder."
+        align="center" color="#aaffaa" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <!-- ══ VITRINAS SALA 2 ══ -->
+    <!-- Vitrina: El Pastel -->
+    <a-entity position="8 0 -8" class="clickable" vitrina="id:guerra_pasteles_ref">
+      <a-box color="#1a0a00" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#c8860a" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#ffcc88" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <!-- Pastel geométrico -->
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:6500; easing:linear">
+        <a-cylinder color="#f5deb3" radius="0.38" height="0.3" position="0 0 0"></a-cylinder>
+        <a-cylinder color="#c8860a" radius="0.39" height="0.07" position="0 0.18 0"></a-cylinder>
+        <a-cylinder color="#ff6644" radius="0.22" height="0.12" position="0 0.26 0"></a-cylinder>
+        <a-sphere color="#cc2200" radius="0.07" position="0 0.38 0"></a-sphere>
+        <a-cylinder color="#f0c868" radius="0.41" height="0.04" position="0 -0.16 0"></a-cylinder>
+      </a-entity>
+      <a-text value="La Guerra de&#10;los Pasteles 1838" align="center" color="#ffcc88" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+    <!-- Vitrina: Zaragoza -->
+    <a-entity position="-8 0 -8" class="clickable" vitrina="id:zaragoza">
+      <a-box color="#1a0a00" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#1a3a7a" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#4488ff" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#4488ff" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#4488ff" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <!-- Espada de Zaragoza -->
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:7000; easing:linear">
+        <a-box color="#d4d4d4" width="0.07" height="1.3" depth="0.045" position="0 0.1 0"></a-box>
+        <a-box color="#c8860a" width="0.46" height="0.07" depth="0.045" position="0 -0.5 0"></a-box>
+        <a-cylinder color="#8b4500" radius="0.055" height="0.38" position="0 -0.76 0"></a-cylinder>
+        <a-sphere color="#4488ff" radius="0.1" position="0 -0.98 0"></a-sphere>
+      </a-entity>
+      <a-text value="Ignacio Zaragoza&#10;Héroe 5 de Mayo" align="center" color="#88ccff" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+    <!-- Vitrina: Batalla de Puebla -->
+    <a-entity position="-8 0 8" class="clickable" vitrina="id:batalla_puebla">
+      <a-box color="#1a0a00" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#4a0a00" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#ff4444" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#ff4444" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#ff4444" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <!-- Cañón geométrico -->
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:8000; easing:linear">
+        <a-cylinder color="#3a3a3a" radius="0.16" height="0.9" rotation="0 0 30" position="0.05 0 0"></a-cylinder>
+        <a-cylinder color="#5a5a5a" radius="0.2" height="0.16" rotation="0 0 30" position="-0.23 -0.32 0"></a-cylinder>
+        <a-box color="#5a3a00" width="0.7" height="0.14" depth="0.28" position="-0.12 -0.56 0" rotation="0 0 30"></a-box>
+        <a-cylinder color="#5a3a00" radius="0.18" height="0.08" rotation="90 0 0" position="-0.28 -0.65 -0.18"></a-cylinder>
+        <a-cylinder color="#5a3a00" radius="0.18" height="0.08" rotation="90 0 0" position="0.08 -0.65 -0.18"></a-cylinder>
+      </a-entity>
+      <a-text value="Batalla de Puebla&#10;5 de Mayo 1862" align="center" color="#ff9966" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+    <!-- Vitrina: Maximiliano -->
+    <a-entity position="8 0 8" class="clickable" vitrina="id:partido_porfirista">
+      <a-box color="#1a0a00" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#3a1050" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#9944ff" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#9944ff" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#9944ff" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <!-- Corona imperial -->
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:5000; easing:linear">
+        <a-torus color="#c8860a" radius="0.32" radius-tubular="0.07" rotation="90 0 0" position="0 0 0"></a-torus>
+        <a-cone color="#c8860a" radius-bottom="0.05" radius-top="0.01" height="0.3" position="0 0.22 0.3" rotation="10 0 0"></a-cone>
+        <a-cone color="#c8860a" radius-bottom="0.05" radius-top="0.01" height="0.3" position="-0.28 0.22 0.12" rotation="10 35 0"></a-cone>
+        <a-cone color="#c8860a" radius-bottom="0.05" radius-top="0.01" height="0.3" position="0.28 0.22 0.12" rotation="10 -35 0"></a-cone>
+        <a-sphere color="#cc0000" radius="0.06" position="0 0.52 0.3"></a-sphere>
+        <a-sphere color="#0000cc" radius="0.06" position="-0.28 0.52 0.12"></a-sphere>
+        <a-sphere color="#00cc00" radius="0.06" position="0.28 0.52 0.12"></a-sphere>
+      </a-entity>
+      <a-text value="Maximiliano I&#10;Segundo Imperio" align="center" color="#dd99ff" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+  </a-entity><!-- /sala2 -->
+
+
+  <!-- ═══════════════════════════════════════════════════
+       SALA 3 — LA REPÚBLICA RESTAURADA
+       Paleta: verde republicano / blanco / dorado
+  ═══════════════════════════════════════════════════ -->
+  <a-entity id="sala3" visible="false" position="0 0 -240">
+
+    <a-box color="#001a00" width="36" height="0.25" depth="36" position="0 -0.12 0"></a-box>
+    <a-box color="#000e00" width="36" height="0.25" depth="36" position="0 10.1 0"></a-box>
+    <a-box color="#001200" width="35.5" height="0.08" depth="35.5" position="0 0.04 0"></a-box>
+    <!-- Muros -->
+    <a-box color="#001500" width="36" height="10" depth="0.3" position="0 5 -18"></a-box>
+    <a-box color="#001500" width="36" height="10" depth="0.3" position="0 5 18" rotation="0 180 0"></a-box>
+    <a-box color="#001500" width="0.3" height="10" depth="36" position="-18 5 0"></a-box>
+    <a-box color="#001500" width="0.3" height="10" depth="36" position="18 5 0"></a-box>
+    <!-- Zócalo verde -->
+    <a-box color="#006830" width="36" height="0.18" depth="0.35" position="0 0.75 -18"></a-box>
+    <a-box color="#006830" width="36" height="0.18" depth="0.35" position="0 0.75 18"></a-box>
+    <a-box color="#006830" width="0.35" height="0.18" depth="36" position="-18 0.75 0"></a-box>
+    <a-box color="#006830" width="0.35" height="0.18" depth="36" position="18 0.75 0"></a-box>
+    <a-box color="#004a22" width="36.3" height="0.25" depth="0.4" position="0 9.8 -18"></a-box>
+    <a-box color="#004a22" width="36.3" height="0.25" depth="0.4" position="0 9.8 18"></a-box>
+    <a-box color="#004a22" width="0.4" height="0.25" depth="36.3" position="-18 9.8 0"></a-box>
+    <a-box color="#004a22" width="0.4" height="0.25" depth="36.3" position="18 9.8 0"></a-box>
+
+    <a-light type="ambient" color="#001a08" intensity="1.2"></a-light>
+    <a-light type="point" color="#88ff99" intensity="2.0" position="0 8.5 0" distance="40" decay="1"></a-light>
+    <a-light type="point" color="#c8ff80" intensity="1.2" position="-8 6 -8" distance="22"></a-light>
+    <a-light type="point" color="#c8ff80" intensity="1.2" position="8 6 8" distance="22"></a-light>
+
+    <!-- TÍTULO -->
+    <a-entity position="0 8.5 -17.5">
+      <a-box color="#001500" width="22" height="1.6" depth="0.18" position="0 0 -0.1"></a-box>
+      <a-box color="#006830" width="22.3" height="1.9" depth="0.12" position="0 0 -0.18"></a-box>
+      <a-text value="SALA III — LA REPÚBLICA RESTAURADA 1867–1876" align="center" color="#aaffaa" width="20" position="0 0 0.1"></a-text>
+    </a-entity>
+
+    <!-- ══ MONUMENTO CENTRAL: 3 PARTIDOS ══ -->
+    <a-entity position="0 0 0">
+      <!-- Base triangular (los 3 partidos) -->
+      <a-box color="#001800" width="7" height="0.18" depth="7" position="0 0.09 0"></a-box>
+      <a-box color="#006830" width="7.1" height="0.06" depth="7.1" position="0 0.18 0"></a-box>
+      <!-- Columna Verde (Juaristas) -->
+      <a-cylinder color="#006830" radius="0.35" height="4.5" position="-2.5 2.6 -1.8"></a-cylinder>
+      <a-cylinder color="#00aa50" radius="0.45" height="0.16" position="-2.5 5 -1.8"></a-cylinder>
+      <a-sphere color="#00dd66" radius="0.3" position="-2.5 5.28 -1.8"></a-sphere>
+      <a-text value="JUARISTAS&#10;Liberal Puro" align="center" color="#88ff99" width="3.8" position="-2.5 1.4 -0.84"></a-text>
+      <!-- Columna Azul (Lerdistas) -->
+      <a-cylinder color="#1a3a9a" radius="0.35" height="3.5" position="2.5 2.1 -1.8"></a-cylinder>
+      <a-cylinder color="#3a5acc" radius="0.45" height="0.16" position="2.5 4 -1.8"></a-cylinder>
+      <a-sphere color="#5588ff" radius="0.3" position="2.5 4.28 -1.8"></a-sphere>
+      <a-text value="LERDISTAS&#10;Moderado" align="center" color="#88aaff" width="3.8" position="2.5 1.4 -0.84"></a-text>
+      <!-- Columna Naranja (Porfiristas) -->
+      <a-cylinder color="#8b3a00" radius="0.35" height="2.8" position="0 1.74 2.5"></a-cylinder>
+      <a-cylinder color="#c8600a" radius="0.45" height="0.16" position="0 3.28 2.5"></a-cylinder>
+      <a-sphere color="#ff8833" radius="0.3" position="0 3.56 2.5"></a-sphere>
+      <a-text value="PORFIRISTAS&#10;No Reelección" align="center" color="#ffbb66" width="3.8" position="0 1.4 3.36"></a-text>
+      <!-- Texto central -->
+      <a-text value="LA REPÚBLICA&#10;RESTAURADA" align="center" color="#aaffaa" width="5.5" position="0 0.5 0"></a-text>
+    </a-entity>
+
+    <!-- PANELES SALA 3 -->
+    <a-entity position="0 3.5 -16.5">
+      <a-box color="#006830" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#001800" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#001000" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="LA REPÚBLICA RESTAURADA" align="center" color="#aaffaa" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;1867: Juárez entra victorioso a la Ciudad&#10;de México. La República queda restaurada.&#10;&#10;Maximiliano fue fusilado el 19 de junio&#10;de 1867 en el Cerro de las Campanas.&#10;&#10;Los 3 partidos del periodo:&#10;· Juaristas — Liberal Puro&#10;· Lerdistas — Moderados&#10;· Porfiristas — No Reelección"
+        align="center" color="#aaffaa" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <a-entity position="17 3.5 0" rotation="0 -90 0">
+      <a-box color="#006830" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#001800" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#001000" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="EL PLAN DE LA NORIA (1871)" align="center" color="#aaffaa" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;8 de noviembre de 1871:&#10;Porfirio Díaz proclama el Plan de la&#10;Noria desde su hacienda en Oaxaca.&#10;&#10;Rechaza la reelección de Juárez.&#10;Exige elecciones libres.&#10;&#10;El levantamiento fracasa. Díaz huye.&#10;La muerte de Juárez (julio 1872) pone&#10;fin al conflicto. Díaz espera."
+        align="center" color="#aaffaa" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <a-entity position="-17 3.5 0" rotation="0 90 0">
+      <a-box color="#006830" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#001800" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#001000" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="SEBASTIÁN LERDO DE TEJADA" align="center" color="#aaffaa" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;Asumió la presidencia tras la muerte&#10;de Juárez en 1872.&#10;&#10;Era presidente de la Suprema Corte,&#10;hábil político y abogado.&#10;&#10;· Incorporó las Leyes de Reforma&#10;  a la Constitución (1873)&#10;· Expulsó a los jesuitas&#10;&#10;Intentó reelegirse en 1876 y fue&#10;derrotado por Díaz en Tecoac."
+        align="center" color="#aaffaa" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <a-entity position="0 3.5 16.5" rotation="0 180 0">
+      <a-box color="#006830" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#001800" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#001000" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="EL PLAN DE TUXTEPEC (1876)" align="center" color="#aaffaa" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;10 de enero de 1876:&#10;Díaz proclama el Plan de Tuxtepec.&#10;Lema: 'No Reelección'.&#10;&#10;16 de noviembre 1876: Derrota al ejército&#10;federal en la batalla de Tecoac, Tlaxcala.&#10;&#10;Lerdo huye al exilio.&#10;28 de noviembre: Díaz entra a la Ciudad&#10;de México. Comienza el Porfiriato."
+        align="center" color="#aaffaa" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <!-- VITRINAS SALA 3 -->
+    <!-- Juaristas -->
+    <a-entity position="-8 0 -8" class="clickable" vitrina="id:partido_juarista">
+      <a-box color="#001800" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#006830" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#88ff99" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#006830" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#006830" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:8000; easing:linear">
+        <!-- Águila juarista -->
+        <a-sphere color="#8b6a20" radius="0.22" position="0 0.28 0"></a-sphere>
+        <a-cone color="#c8860a" radius-bottom="0.08" radius-top="0.01" height="0.2" position="0 0 0" rotation="0 0 180"></a-cone>
+        <a-box color="#4a3000" width="0.6" height="0.08" depth="0.18" position="-0.35 0.15 0" rotation="0 0 25"></a-box>
+        <a-box color="#4a3000" width="0.6" height="0.08" depth="0.18" position="0.35 0.15 0" rotation="0 0 -25"></a-box>
+      </a-entity>
+      <a-text value="Partido Juarista&#10;Liberal Puro" align="center" color="#88ff99" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+    <!-- Plan de la Noria -->
+    <a-entity position="8 0 -8" class="clickable" vitrina="id:plan_noria">
+      <a-box color="#001800" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#8b3a00" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#ff8833" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#8b3a00" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#8b3a00" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:7000; easing:linear">
+        <a-box color="#f0e0b0" width="0.42" height="0.58" depth="0.04" position="0 0.05 0"></a-box>
+        <a-cylinder color="#8b0000" radius="0.12" height="0.05" position="0.12 -0.14 0.04"></a-cylinder>
+        <a-torus color="#cc2200" radius="0.1" radius-tubular="0.015" rotation="90 0 0" position="0.12 -0.14 0.06"></a-torus>
+        <a-cylinder color="#c8860a" radius="0.06" height="0.07" position="-0.12 0.18 0.03"></a-cylinder>
+      </a-entity>
+      <a-text value="Plan de la Noria&#10;1871" align="center" color="#ffbb66" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+    <!-- Lerdistas -->
+    <a-entity position="-8 0 8" class="clickable" vitrina="id:partido_lerdista">
+      <a-box color="#001800" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#1a3a9a" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#4488ff" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#1a3a9a" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#1a3a9a" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:9000; easing:linear">
+        <!-- Libro de leyes -->
+        <a-box color="#1a3a9a" width="0.5" height="0.7" depth="0.1" position="0 0 0"></a-box>
+        <a-box color="#f0e0b0" width="0.44" height="0.63" depth="0.08" position="0.04 0 0.04"></a-box>
+        <a-cylinder color="#c8860a" radius="0.045" height="0.52" rotation="0 0 90" position="0 0.28 0.08"></a-cylinder>
+        <a-cylinder color="#c8860a" radius="0.045" height="0.52" rotation="0 0 90" position="0 -0.06 0.08"></a-cylinder>
+      </a-entity>
+      <a-text value="Partido Lerdista&#10;Moderado" align="center" color="#88aaff" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+    <!-- Plan de Tuxtepec -->
+    <a-entity position="8 0 8" class="clickable" vitrina="id:plan_tuxtepec">
+      <a-box color="#001800" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#8b3a00" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#ff8833" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#8b3a00" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#8b3a00" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:6000; easing:linear">
+        <!-- Laurel de victoria -->
+        <a-torus color="#006830" radius="0.3" radius-tubular="0.055" rotation="90 0 0" position="0 0 0"></a-torus>
+        <a-box color="#006830" width="0.08" height="0.24" depth="0.05" position="-0.26 0.1 0" rotation="0 0 40"></a-box>
+        <a-box color="#006830" width="0.08" height="0.24" depth="0.05" position="0.26 0.1 0" rotation="0 0 -40"></a-box>
+        <a-sphere color="#c8860a" radius="0.18" position="0 0 0"></a-sphere>
+        <a-text value="NO RE" align="center" color="#ff8833" width="1.2" position="0 0 0.2"></a-text>
+      </a-entity>
+      <a-text value="Plan de Tuxtepec&#10;1876 — Triunfo" align="center" color="#ffbb66" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+  </a-entity><!-- /sala3 -->
+
+
+  <!-- ═══════════════════════════════════════════════════
+       SALA 4 — EL PORFIRIATO
+       Paleta: dorado / sepia / negro profundo
+  ═══════════════════════════════════════════════════ -->
+  <a-entity id="sala4" visible="false" position="0 0 -360">
+
+    <a-box color="#050300" width="36" height="0.25" depth="36" position="0 -0.12 0"></a-box>
+    <a-box color="#020100" width="36" height="0.25" depth="36" position="0 10.1 0"></a-box>
+    <a-box color="#0a0700" width="35.5" height="0.08" depth="35.5" position="0 0.04 0"></a-box>
+    <!-- Muros sepia oscuro -->
+    <a-box color="#100a00" width="36" height="10" depth="0.3" position="0 5 -18"></a-box>
+    <a-box color="#100a00" width="36" height="10" depth="0.3" position="0 5 18" rotation="0 180 0"></a-box>
+    <a-box color="#100a00" width="0.3" height="10" depth="36" position="-18 5 0"></a-box>
+    <a-box color="#100a00" width="0.3" height="10" depth="36" position="18 5 0"></a-box>
+    <!-- Zócalo dorado Porfiriato -->
+    <a-box color="#c8860a" width="36" height="0.18" depth="0.35" position="0 0.75 -18"></a-box>
+    <a-box color="#c8860a" width="36" height="0.18" depth="0.35" position="0 0.75 18"></a-box>
+    <a-box color="#c8860a" width="0.35" height="0.18" depth="36" position="-18 0.75 0"></a-box>
+    <a-box color="#c8860a" width="0.35" height="0.18" depth="36" position="18 0.75 0"></a-box>
+    <a-box color="#8b5a00" width="36.3" height="0.25" depth="0.4" position="0 9.8 -18"></a-box>
+    <a-box color="#8b5a00" width="36.3" height="0.25" depth="0.4" position="0 9.8 18"></a-box>
+    <a-box color="#8b5a00" width="0.4" height="0.25" depth="36.3" position="-18 9.8 0"></a-box>
+    <a-box color="#8b5a00" width="0.4" height="0.25" depth="36.3" position="18 9.8 0"></a-box>
+
+    <a-light type="ambient" color="#1a1000" intensity="1.3"></a-light>
+    <a-light type="point" color="#ffc840" intensity="2.5" position="0 8.5 0" distance="40" decay="1"></a-light>
+    <a-light type="point" color="#ff8a00" intensity="1.5" position="-8 6 -8" distance="22"></a-light>
+    <a-light type="point" color="#ff8a00" intensity="1.5" position="8 6 8" distance="22"></a-light>
+
+    <!-- TÍTULO -->
+    <a-entity position="0 8.5 -17.5">
+      <a-box color="#100a00" width="22" height="1.6" depth="0.18" position="0 0 -0.1"></a-box>
+      <a-box color="#c8860a" width="22.3" height="1.9" depth="0.12" position="0 0 -0.18"></a-box>
+      <a-text value="SALA IV — EL PORFIRIATO 1876–1911" align="center" color="#ffd060" width="20" position="0 0 0.1"></a-text>
+    </a-entity>
+
+    <!-- ══ MONUMENTO CENTRAL: PORFIRIO DÍAZ ══ -->
+    <a-entity position="0 0 0">
+      <!-- Pedestal ornamentado Porfiriato -->
+      <a-box color="#2a1800" width="5.5" height="0.18" depth="5.5" position="0 0.09 0"></a-box>
+      <a-box color="#c8860a" width="5.6" height="0.06" depth="5.6" position="0 0.18 0"></a-box>
+      <a-box color="#3a2000" width="4.0" height="0.35" depth="4.0" position="0 0.46 0"></a-box>
+      <a-box color="#c8860a" width="4.05" height="0.06" depth="4.05" position="0 0.82 0"></a-box>
+      <a-box color="#2a1800" width="3.0" height="2.2" depth="3.0" position="0 2.02 0"></a-box>
+      <a-box color="#c8860a" width="3.05" height="0.06" depth="3.05" position="0 3.24 0"></a-box>
+      <!-- Textos pedestal -->
+      <a-text value="PORFIRIO DÍAZ&#10;Presidente 1876-1911" align="center" color="#ffd060" width="7" position="0 2.0 1.56"></a-text>
+      <a-text value="'Pan y Palo'" align="center" color="#c8860a" width="5" position="0 1.3 1.56"></a-text>
+      <!-- Figura Porfirio -->
+      <!-- uniforme militar -->
+      <a-box color="#2a3a00" width="0.9" height="1.4" depth="0.5" position="0 4.7 0"></a-box>
+      <!-- medallas -->
+      <a-sphere color="#c8860a" radius="0.07" position="-0.18 4.58 0.28"></a-sphere>
+      <a-sphere color="#aaaaaa" radius="0.06" position="-0.04 4.44 0.28"></a-sphere>
+      <a-sphere color="#c8860a" radius="0.06" position="-0.18 4.32 0.28"></a-sphere>
+      <!-- hombreras -->
+      <a-box color="#c8860a" width="0.26" height="0.1" depth="0.5" position="-0.58 5.34 0"></a-box>
+      <a-box color="#c8860a" width="0.26" height="0.1" depth="0.5" position="0.58 5.34 0"></a-box>
+      <!-- cuello -->
+      <a-cylinder color="#b07840" radius="0.14" height="0.16" position="0 5.54 0"></a-cylinder>
+      <!-- cabeza -->
+      <a-sphere color="#b07840" radius="0.3" position="0 5.95 0"></a-sphere>
+      <!-- bigote y cabello -->
+      <a-sphere color="#1a1200" radius="0.31" position="0 6.05 -0.05" scale="1 0.6 1"></a-sphere>
+      <a-box color="#1a1200" width="0.26" height="0.06" depth="0.06" position="0 5.84 0.28"></a-box>
+      <!-- ojos -->
+      <a-sphere color="#0a0800" radius="0.055" position="-0.12 5.98 0.27"></a-sphere>
+      <a-sphere color="#0a0800" radius="0.055" position="0.12 5.98 0.27"></a-sphere>
+      <!-- kepi militar -->
+      <a-cylinder color="#2a3a00" radius="0.32" height="0.22" position="0 6.28 0"></a-cylinder>
+      <a-cylinder color="#2a3a00" radius="0.28" height="0.08" position="0 6.38 0"></a-cylinder>
+      <a-box color="#c8860a" width="0.6" height="0.04" depth="0.18" position="0 6.22 0.3"></a-box>
+      <!-- brazos -->
+      <a-box color="#2a3a00" width="0.22" height="0.9" depth="0.28" position="-0.58 4.5 0" rotation="0 0 6"></a-box>
+      <a-box color="#2a3a00" width="0.22" height="0.9" depth="0.28" position="0.58 4.5 0" rotation="0 0 -6"></a-box>
+      <!-- halo dorado -->
+      <a-torus color="#c8860a" radius="1.1" radius-tubular="0.03" rotation="90 0 0" position="0 7.2 0"
+        animation="property:rotation; to:90 360 0; loop:true; dur:8000; easing:linear"></a-torus>
+      <a-light type="point" color="#ffc840" intensity="1.5" position="0 7 0" distance="10"></a-light>
+    </a-entity>
+
+    <!-- PANELES SALA 4 -->
+    <a-entity position="0 3.5 -16.5">
+      <a-box color="#c8860a" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#1a1000" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#100800" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="EL PORFIRIATO 1876–1911" align="center" color="#ffd060" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;Porfirio Díaz gobernó México 35 años&#10;(con breve interrupción de Manuel González&#10;1880-1884).&#10;&#10;Su política: PAN Y PALO&#10;Premio a los leales (cargos, contratos,&#10;tierras) y castigo a los opositores.&#10;&#10;Modernizó México pero la desigualdad&#10;y represión sembraron la Revolución."
+        align="center" color="#ffd060" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <a-entity position="17 3.5 0" rotation="0 -90 0">
+      <a-box color="#c8860a" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#1a1000" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#100800" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="MANUEL GONZÁLEZ — EL COMPADRE" align="center" color="#ffd060" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;Manuel González (1880-1884):&#10;Compadre y hombre de confianza de Díaz.&#10;&#10;Díaz lo puso en la presidencia para&#10;cumplir el principio de 'No Reelección'&#10;y luego volver al poder en 1884.&#10;&#10;González fue criticado por corrupción&#10;y mala administración económica,&#10;lo que facilitó el regreso de Díaz."
+        align="center" color="#ffd060" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <a-entity position="-17 3.5 0" rotation="0 90 0">
+      <a-box color="#c8860a" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#1a1000" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#100800" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="LOS BANCOS Y LA INDUSTRIA" align="center" color="#ffd060" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;1884: Se funda el Banco Nacional de&#10;México (Banamex), primer banco moderno&#10;del país.&#10;&#10;1897: Ley General de Instituciones&#10;de Crédito organiza el sistema.&#10;&#10;Para 1910 existían 32 bancos en México.&#10;Pero el crédito estaba concentrado&#10;en la élite y empresas extranjeras."
+        align="center" color="#ffd060" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <a-entity position="0 3.5 16.5" rotation="0 180 0">
+      <a-box color="#c8860a" width="14.2" height="7.4" depth="0.12" position="0 0 -0.12"></a-box>
+      <a-box color="#1a1000" width="14" height="7.2" depth="0.14" position="0 0 -0.06"></a-box>
+      <a-box color="#100800" width="13.8" height="7.0" depth="0.12" position="0 0 0"></a-box>
+      <a-text value="LOS FERROCARRILES DEL PORFIRIATO" align="center" color="#ffd060" width="12" position="0 2.9 0.1" wrap-count="40"></a-text>
+      <a-text value="─────────────────────────────────────────&#10;&#10;La gran obra material del Porfiriato:&#10;20,000 km de vías férreas.&#10;&#10;1876: México tenía sólo 640 km&#10;1910: México tenía 20,000 km&#10;&#10;Los ferrocarriles conectaron las minas&#10;del norte con los puertos del Golfo&#10;y el Pacífico. Capital principalmente&#10;estadounidense y británico."
+        align="center" color="#ffd060" width="12" position="0 0.2 0.1" wrap-count="44"></a-text>
+    </a-entity>
+
+    <!-- VITRINAS SALA 4 -->
+    <!-- Pan y Palo -->
+    <a-entity position="-8 0 -8" class="clickable" vitrina="id:pan_y_palo">
+      <a-box color="#1a1000" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#c8860a" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#ffd060" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <!-- Pan (hogaza) y Palo (bastón) -->
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:7000; easing:linear">
+        <!-- Pan -->
+        <a-sphere color="#c8860a" radius="0.22" position="-0.2 0.1 0" scale="1.3 0.85 0.9"></a-sphere>
+        <a-sphere color="#8b5a00" radius="0.12" position="-0.2 0.24 0" scale="1.2 0.6 0.8"></a-sphere>
+        <!-- Palo -->
+        <a-cylinder color="#5a3a00" radius="0.05" height="0.8" position="0.28 -0.12 0" rotation="0 0 -15"></a-cylinder>
+        <a-sphere color="#3a2000" radius="0.08" position="0.35 0.32 0"></a-sphere>
+      </a-entity>
+      <a-text value="'Pan y Palo'&#10;Política Porfiriana" align="center" color="#ffd060" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+    <!-- Ferrocarril -->
+    <a-entity position="8 0 -8" class="clickable" vitrina="id:ferrocarril_porf">
+      <a-box color="#1a1000" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#3a3a3a" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#888888" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#888888" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#888888" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <!-- Locomotora geométrica -->
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:6000; easing:linear">
+        <!-- cuerpo locomotora -->
+        <a-box color="#3a3a3a" width="0.7" height="0.36" depth="0.36" position="0 0 0"></a-box>
+        <!-- chimenea -->
+        <a-cylinder color="#2a2a2a" radius="0.07" height="0.28" position="-0.2 0.32 0"></a-cylinder>
+        <a-cylinder color="#4a4a4a" radius="0.1" height="0.06" position="-0.2 0.5 0"></a-cylinder>
+        <!-- ruedas -->
+        <a-torus color="#888888" radius="0.14" radius-tubular="0.03" rotation="90 0 0" position="-0.22 -0.2 -0.16"></a-torus>
+        <a-torus color="#888888" radius="0.14" radius-tubular="0.03" rotation="90 0 0" position="0.18 -0.2 -0.16"></a-torus>
+        <a-torus color="#888888" radius="0.14" radius-tubular="0.03" rotation="90 0 0" position="-0.22 -0.2 0.16"></a-torus>
+        <a-torus color="#888888" radius="0.14" radius-tubular="0.03" rotation="90 0 0" position="0.18 -0.2 0.16"></a-torus>
+        <!-- vapor -->
+        <a-sphere color="#dddddd" opacity="0.5" transparent="true" radius="0.1" position="-0.2 0.65 0"></a-sphere>
+        <a-sphere color="#eeeeee" opacity="0.4" transparent="true" radius="0.08" position="-0.28 0.76 0"></a-sphere>
+      </a-entity>
+      <a-text value="Los Ferrocarriles&#10;del Porfiriato" align="center" color="#cccccc" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+    <!-- 30 años gobierno -->
+    <a-entity position="-8 0 8" class="clickable" vitrina="id:porfirio_30">
+      <a-box color="#1a1000" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#c8860a" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#ffd060" opacity="0.08" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#c8860a" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <!-- Medalla de gala -->
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:5500; easing:linear">
+        <a-cylinder color="#c8860a" radius="0.3" height="0.06" position="0 0 0"></a-cylinder>
+        <a-torus color="#ffd700" radius="0.28" radius-tubular="0.03" rotation="90 0 0" position="0 0.04 0"></a-torus>
+        <a-sphere color="#ffffff" radius="0.11" position="0 0.06 0"></a-sphere>
+        <a-box color="#006847" width="0.13" height="0.4" depth="0.025" position="-0.04 0.34 0"></a-box>
+        <a-box color="#ce1126" width="0.13" height="0.4" depth="0.025" position="0.04 0.34 0"></a-box>
+        <a-text value="35" align="center" color="#c8860a" width="1.2" position="0 0 0.12"></a-text>
+      </a-entity>
+      <a-text value="35 Años de&#10;Gobierno Porfirista" align="center" color="#ffd060" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+    <!-- Banco Nacional -->
+    <a-entity position="8 0 8" class="clickable" vitrina="id:bancos_porf">
+      <a-box color="#1a1000" width="2.2" height="0.12" depth="2.2" position="0 0.96 0"></a-box>
+      <a-box color="#2a4a00" width="1.8" height="0.72" depth="1.8" position="0 0.36 0"></a-box>
+      <a-box color="#88ff44" opacity="0.07" transparent="true" data-glow="1" width="2.1" height="2.5" depth="2.1" position="0 2.2 0"></a-box>
+      <a-box color="#4a8a00" width="2.15" height="0.07" depth="2.15" position="0 1.02 0"></a-box>
+      <a-box color="#4a8a00" width="2.15" height="0.07" depth="2.15" position="0 3.4 0"></a-box>
+      <!-- Edificio banco estilo Porfiriato -->
+      <a-entity position="0 2.16 0" animation="property:rotation; to:0 360 0; loop:true; dur:9000; easing:linear">
+        <a-box color="#f0e0c0" width="0.6" height="0.6" depth="0.5" position="0 0 0"></a-box>
+        <a-box color="#d4c090" width="0.7" height="0.1" depth="0.55" position="0 0.36 0"></a-box>
+        <!-- columnas -->
+        <a-cylinder color="#e0d0a0" radius="0.04" height="0.48" position="-0.2 0 0.26"></a-cylinder>
+        <a-cylinder color="#e0d0a0" radius="0.04" height="0.48" position="0 0 0.26"></a-cylinder>
+        <a-cylinder color="#e0d0a0" radius="0.04" height="0.48" position="0.2 0 0.26"></a-cylinder>
+        <!-- frontón -->
+        <a-cone color="#d4c090" radius-bottom="0.38" radius-top="0.01" height="0.22" position="0 0.52 0"></a-cone>
+        <!-- puerta -->
+        <a-box color="#4a3000" width="0.14" height="0.2" depth="0.52" position="0 -0.16 0"></a-box>
+        <a-sphere color="#c8860a" radius="0.03" position="0.08 -0.16 0.28"></a-sphere>
+      </a-entity>
+      <a-text value="Banco Nacional&#10;de México 1884" align="center" color="#aaffaa" width="4.5" position="0 0.72 1.14"></a-text>
+      <a-box class="clickable" width="2.2" height="3.4" depth="2.2" position="0 2.2 0" opacity="0" transparent="true"></a-box>
+    </a-entity>
+
+  </a-entity><!-- /sala4 -->
+
+</a-scene>
+
+<!-- ════════════════════════════════ JAVASCRIPT ════════════════════════════════ -->
+<script>
+  var salaActual = 'sala1';
+
+  function entrar() {
+    document.getElementById('splash').style.display = 'none';
+    var scene = document.getElementById('scene');
+    scene.style.display = 'block';
+    document.getElementById('room-name').style.display = 'block';
+    document.getElementById('controls').style.display = 'block';
+    document.getElementById('minimap').style.display = 'block';
+    document.getElementById('nav-toggle').style.display = 'block';
+    resaltarMapa('m1');
+  }
+
+  function toggleNav() {
+    var p = document.getElementById('nav-panel');
+    p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
+  }
+
+  function irASala(sala, nombre, mapId) {
+    if (salaActual === sala) { document.getElementById('nav-panel').style.display='none'; return; }
+    document.getElementById(salaActual).setAttribute('visible','false');
+    var cam = document.getElementById('camara-global');
+    var offsetZ = {'sala1':0,'sala2':-120,'sala3':-240,'sala4':-360}[sala];
+    cam.setAttribute('position','0 1.6 ' + (8 + offsetZ));
+    document.getElementById(sala).setAttribute('visible','true');
+    salaActual = sala;
+    document.getElementById('room-name').textContent = nombre;
+    document.getElementById('nav-panel').style.display = 'none';
+    resaltarMapa(mapId);
+  }
+
+  function resaltarMapa(activo) {
+    ['m1','m2','m3','m4'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.style.color = (id === activo) ? '#f5a623' : '#f0e0ff';
+      el.style.fontWeight = (id === activo) ? 'bold' : 'normal';
+    });
+  }
+
+  /* ── VITRINAS ── */
+  var vitrinaData = {
+    const57_juarez: {
+      titulo:"Benito Juárez y la Constitución de 1857",
+      fecha:"5 Febrero 1857",
+      emoji:"⚖️",
+      desc:"Benito Juárez (1806-1872), zapoteca de Oaxaca, fue el arquitecto del México liberal. Como Ministro de Justicia promulgó la Ley Juárez (1855) que eliminó los fueros eclesiásticos y militares. La Constitución de 1857 consagró los derechos del hombre, la libertad de cultos y el juicio de amparo. Cuando los conservadores la rechazaron y desencadenaron la Guerra de Reforma (1858-1861), Juárez gobernó desde Veracruz. En 1861 entró triunfante a la Ciudad de México. Su lema: 'El respeto al derecho ajeno es la paz'.",
+      biblio:"Fuentes: Hamnett, B. (1994). Juárez. Longman. Reyes Heroles, J. (1957). El liberalismo mexicano. UNAM."
+    },
+    silla_presidencial: {
+      titulo:"La Silla Presidencial de Juárez",
+      fecha:"1858 — 1872",
+      emoji:"🪑",
+      desc:"Juárez fue el primer presidente de origen indígena en América Latina. Gobernó en las condiciones más adversas: perseguido por los conservadores, luego por los franceses, siempre mantuvo la legalidad constitucional. Nunca abandonó la presidencia legítima, siguió gobernando itinerante por el norte del país incluso cuando los franceses ocupaban la capital. Su tenacidad fue clave para restaurar la República en 1867.",
+      biblio:"Fuentes: Hamnett, B. (1994). Juárez. Longman."
+    },
+    bandera57: {
+      titulo:"La Bandera Nacional en 1857",
+      fecha:"1857",
+      emoji:"🇲🇽",
+      desc:"La bandera tricolor verde, blanco y rojo fue adoptada formalmente. Con las Leyes de Reforma se laicizó el Estado: el blanco perdió su connotación religiosa para representar la esperanza. El águila devorando a la serpiente sobre un nopal, símbolo prehispánico de la fundación de Tenochtitlan, fue reafirmada como escudo nacional.",
+      biblio:"Fuentes: Constitución de 1857. Archivo General de la Nación."
+    },
+    espada_reforma: {
+      titulo:"Espada de la Guerra de Reforma",
+      fecha:"1858 — 1861",
+      emoji:"⚔️",
+      desc:"La Guerra de los Tres Años (1858-1861) fue la guerra civil más sangrienta del siglo XIX mexicano. Los liberales de Juárez, con capital en Veracruz, enfrentaron a los conservadores de Félix Zuloaga en la Ciudad de México. Juárez promulgó desde Veracruz las Leyes de Reforma: matrimonio civil, Registro Civil, cementerios laicos, libertad de cultos, nacionalización de bienes eclesiásticos. Los liberales triunfaron en enero de 1861.",
+      biblio:"Fuentes: Roeder, R. (1947). Juárez and his Mexico. Viking Press."
+    },
+    guerra_pasteles_ref: {
+      titulo:"La Guerra de los Pasteles — Antecedente Francés",
+      fecha:"1838 — 1839",
+      emoji:"🥐",
+      desc:"En 1838 Francia bloqueó Veracruz exigiendo 600,000 pesos por daños a ciudadanos franceses, incluyendo a un pastelero llamado Remontel. México se negó a pagar. La flota francesa bombardeó el fuerte de San Juan de Ulúa. Santa Anna perdió una pierna defendiendo Veracruz y se convirtió en héroe. Este conflicto anticipó la animosidad francesa que culminaría con la Intervención de 1862.",
+      biblio:"Fuentes: Bazant, J. (1968). Historia de la deuda exterior de México. Colegio de México."
+    },
+    zaragoza: {
+      titulo:"Ignacio Zaragoza — Héroe del 5 de Mayo",
+      fecha:"24 Mar 1829 — 8 Sep 1862",
+      emoji:"⚔️",
+      desc:"Ignacio Zaragoza nació en Bahía del Espíritu Santo, Texas (entonces México). General del ejército liberal, sirvió bajo Juárez en la Guerra de Reforma. Al mando del Ejército de Oriente, organizó la defensa de Puebla con recursos limitados. Después de la victoria del 5 de mayo declaró al gobierno: 'Las armas nacionales se han cubierto de gloria'. Murió cuatro meses después de tifoidea, a los 33 años.",
+      biblio:"Fuentes: Vigil, J.M. (1887). La Reforma. Ballesca."
+    },
+    batalla_puebla: {
+      titulo:"Batalla de Puebla — 5 de Mayo de 1862",
+      fecha:"5 Mayo 1862",
+      emoji:"💥",
+      desc:"El general Ignacio Zaragoza, con 4,000 soldados mexicanos, derrotó al ejército francés considerado el mejor del mundo en Puebla. La batalla duró pocas horas. Francia enviaba 6,000 hombres al mando del general Laurencez, derrotado en los fuertes de Loreto y Guadalupe. La victoria fue breve: Napoleón III envió 30,000 soldados más. México perdió la guerra pero ganó un símbolo de dignidad nacional.",
+      biblio:"Fuentes: Vigil, J.M. (1887). La Reforma. Ballesca. Roeder, R. (1947). Juárez and his Mexico."
+    },
+    partido_porfirista: {
+      titulo:"Maximiliano I — El Segundo Imperio",
+      fecha:"1864 — 1867",
+      emoji:"👑",
+      desc:"Maximiliano de Habsburgo (1832-1867) aceptó la corona de México en 1864 apoyado por Napoleón III. Su gobierno fue moderado: mantuvo algunas Leyes de Reforma e intentó ser popular. Pero era ilegítimo. Juárez nunca reconoció el Imperio y siguió luchando desde el norte. Cuando EE.UU. presionó a Francia y las tropas se retiraron, Maximiliano fue capturado y fusilado el 19 de junio de 1867 en el Cerro de las Campanas, Querétaro.",
+      biblio:"Fuentes: Haslip, J. (1971). The Crown of Mexico. Holt, Rinehart and Winston."
+    },
+    partido_juarista: {
+      titulo:"Los Juaristas — Partido Liberal Puro",
+      fecha:"1867 — 1872",
+      emoji:"🟢",
+      desc:"Los juaristas eran la fracción del Partido Liberal fiel a Benito Juárez. Defendían el programa de la Reforma: separación Iglesia-Estado, educación laica, república federal. Juárez fue reelecto en 1867 y 1871. Su reelección provocó la rebelión del Plan de la Noria por Porfirio Díaz. Juárez murió en julio de 1872 de angina de pecho mientras aún era presidente, en medio de una nueva crisis política.",
+      biblio:"Fuentes: Cosío Villegas, D. (1955). Historia Moderna de México. Hermes."
+    },
+    plan_noria: {
+      titulo:"Plan de la Noria (1871)",
+      fecha:"8 Noviembre 1871",
+      emoji:"📜",
+      desc:"El Plan de la Noria fue proclamado por Porfirio Díaz en su hacienda de La Noria, Oaxaca, el 8 de noviembre de 1871. Rechazaba la reelección de Juárez y exigía elecciones libres. El levantamiento fracasó: el ejército federal lo reprimió. Díaz huyó y se acogió a una amnistía. La muerte de Juárez en julio de 1872 puso fin al conflicto. Cinco años después, con el Plan de Tuxtepec (1876), Díaz sí lograría tomar el poder.",
+      biblio:"Fuentes: Cosío Villegas, D. (1955). Historia Moderna de México. Hermes."
+    },
+    partido_lerdista: {
+      titulo:"Los Lerdistas — Sebastián Lerdo de Tejada",
+      fecha:"1872 — 1876",
+      emoji:"🔵",
+      desc:"Sebastián Lerdo de Tejada (1823-1889) asumió la presidencia tras la muerte de Juárez en 1872. Era el presidente de la Suprema Corte, hábil político y abogado. Su gobierno continuó las reformas: decretó la incorporación de las Leyes de Reforma a la Constitución (1873) y expulsó a los jesuitas. Intentó reelegirse en 1876, lo que provocó el Plan de Tuxtepec de Porfirio Díaz, quien lo derrotó en la batalla de Tecoac.",
+      biblio:"Fuentes: Cosío Villegas, D. (1955). Historia Moderna de México. Hermes."
+    },
+    plan_tuxtepec: {
+      titulo:"Plan de Tuxtepec (1876) — Triunfo de Porfirio Díaz",
+      fecha:"10 Enero 1876",
+      emoji:"⚔️",
+      desc:"El Plan de Tuxtepec proclamó el principio de 'No Reelección' y desconoció al gobierno de Lerdo de Tejada. Díaz organizó una insurrección desde el sur y el norte del país. El 16 de noviembre de 1876 derrotó al ejército federal en la batalla de Tecoac, Tlaxcala. Lerdo huyó a Estados Unidos. El 28 de noviembre de 1876, Porfirio Díaz entró a la Ciudad de México e inició el Porfiriato. Irónicame nte, el lema de No Reelección que lo llevó al poder lo violó durante 35 años.",
+      biblio:"Fuentes: Cosío Villegas, D. (1955). Historia Moderna de México. Hermes."
+    },
+    pan_y_palo: {
+      titulo:"'Pan y Palo' — La Política de Porfirio Díaz",
+      fecha:"1876 — 1911",
+      emoji:"🍞",
+      desc:"La política porfiriana se resumía en dos palabras: Pan y Palo. El PAN consistía en otorgar beneficios materiales (cargos públicos, contratos, tierras, concesiones) a quienes apoyaban al régimen. El PALO era la represión de los opositores: cárcel, exilio, o en casos extremos, la ejecución sumaria (ley fuga). Los rurales, policía montada de Díaz, aplicaban la 'ley fuga': declaraban que el prisionero había intentado escapar para justificar su muerte.",
+      biblio:"Fuentes: Beezley, W.H. (1987). Judas at the Jockey Club. Nebraska. Turner, J.K. (1911). México Bárbaro."
+    },
+    ferrocarril_porf: {
+      titulo:"Los Ferrocarriles del Porfiriato",
+      fecha:"1876 — 1910",
+      emoji:"🚂",
+      desc:"La gran obra material del Porfiriato fue la construcción de 20,000 kilómetros de vías férreas. En 1876 México tenía apenas 640 km de ferrocarril; en 1910 tenía 20,000 km. Los ferrocarriles conectaron las minas del norte con los puertos del Golfo y el Pacífico, facilitaron el comercio interno y la exportación. El capital para su construcción fue mayoritariamente estadounidense y británico. Los ferrocarriles modernizaron México pero también lo hicieron dependiente del capital extranjero.",
+      biblio:"Fuentes: Grunstein, A. (1994). Ferrocarriles y soberanía. CIDE."
+    },
+    porfirio_30: {
+      titulo:"Porfirio Díaz — 35 Años de Gobierno",
+      fecha:"1876 — 1911",
+      emoji:"🎖️",
+      desc:"Porfirio Díaz gobernó México por 35 años con breve interrupción (Manuel González 1880-1884). Su sistema fue el de 'Pan y Palo': premiaba a los leales con cargos, contratos y tierras, y castigaba duramente a los opositores. Construyó 20,000 km de ferrocarriles, fomentó la banca moderna y atrajo inversión extranjera masiva. El PIB creció al 2.5% anual sostenido. Pero la desigualdad extrema, el despojo de tierras indígenas y la represión política sembraron la Revolución Mexicana de 1910.",
+      biblio:"Fuentes: Cosío Villegas, D. (1955-72). Historia Moderna de México. Beezley, W.H. (1987). Judas at the Jockey Club. Nebraska."
+    },
+    bancos_porf: {
+      titulo:"La Banca Porfiriana — Banco Nacional de México",
+      fecha:"1884",
+      emoji:"🏦",
+      desc:"En 1884 se fundó el Banco Nacional de México (Banamex), primer banco moderno del país, con capital franco-mexicano. Díaz creó un sistema bancario que financió el crecimiento industrial. En 1897 la Ley General de Instituciones de Crédito organizó el sistema. Para 1910 existían 32 bancos en México. Sin embargo, el crédito estaba concentrado en la élite: los grandes hacendados y empresas extranjeras acaparaban los préstamos, mientras las clases populares no tenían acceso al sistema financiero.",
+      biblio:"Fuentes: Maurer, N. (2002). The Power and the Money. Stanford UP. Haber, S. (1989). Industry and Underdevelopment. Stanford UP."
+    }
+  };
+
+  function abrirVitrina(id) {
+    var d = vitrinaData[id];
+    if (!d) return;
+    document.getElementById('v-titulo').textContent = d.titulo;
+    document.getElementById('v-fecha').textContent = d.fecha;
+    document.getElementById('v-emoji').textContent = d.emoji || '🏛';
+    document.getElementById('v-desc').textContent = d.desc;
+    var bi = document.getElementById('v-biblio');
+    if (d.biblio) { bi.textContent = d.biblio; bi.style.display = 'block'; }
+    else { bi.style.display = 'none'; }
+    document.getElementById('vitrina-modal').classList.add('active');
+    if (document.pointerLockElement) document.exitPointerLock();
+  }
+
+  function cerrarVitrina(e) {
+    if (e && e.target !== document.getElementById('vitrina-modal') && e.target !== document.getElementById('vitrina-close')) return;
+    document.getElementById('vitrina-modal').classList.remove('active');
+  }
+</script>
+</body>
+</html>
